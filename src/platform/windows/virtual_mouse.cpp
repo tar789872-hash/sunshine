@@ -81,7 +81,8 @@ namespace {
   is_vmouse_device(const HIDD_ATTRIBUTES &attrs, const HIDP_CAPS &caps) {
     return attrs.VendorID == VMOUSE_VID &&
            attrs.ProductID == VMOUSE_PID &&
-           caps.FeatureReportByteLength >= VMOUSE_OUTPUT_REPORT_SIZE;
+           (caps.FeatureReportByteLength >= VMOUSE_OUTPUT_REPORT_SIZE ||
+            caps.OutputReportByteLength >= VMOUSE_OUTPUT_REPORT_SIZE);
   }
 }  // namespace
 
@@ -438,7 +439,10 @@ namespace platf {
 
         auto report = detail::build_output_report(buttons, dx, dy, sv, sh);
 
-        BOOL result = HidD_SetFeature(hDevice, (PVOID) report.data(), static_cast<ULONG>(report.size()));
+        BOOL result = HidD_SetOutputReport(hDevice, (PVOID) report.data(), static_cast<ULONG>(report.size()));
+        if (!result) {
+          result = HidD_SetFeature(hDevice, (PVOID) report.data(), static_cast<ULONG>(report.size()));
+        }
 
         if (!result) {
           DWORD err = GetLastError();
@@ -456,7 +460,11 @@ namespace platf {
             last_reopen_attempt = std::chrono::steady_clock::now();
             if (open()) {
               VMOUSE_LOG(info) << "vmouse: Re-acquired virtual mouse device after disconnect (immediate)"sv;
-              if (HidD_SetFeature(hDevice, (PVOID) report.data(), static_cast<ULONG>(report.size()))) {
+              BOOL retry_result = HidD_SetOutputReport(hDevice, (PVOID) report.data(), static_cast<ULONG>(report.size()));
+              if (!retry_result) {
+                retry_result = HidD_SetFeature(hDevice, (PVOID) report.data(), static_cast<ULONG>(report.size()));
+              }
+              if (retry_result) {
                 return true;
               }
               // Reopen succeeded but write still failed — fall through and let

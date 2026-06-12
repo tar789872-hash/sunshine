@@ -127,7 +127,7 @@ namespace platf {
     // Combined with deadline-based scheduling, 1ms is enough to push toward
     // the current UMDF/HID path limit without adding an extra sleep after each
     // HidD_SetFeature() call.
-    static constexpr auto FLUSH_INTERVAL = std::chrono::milliseconds(1);
+    static constexpr auto FLUSH_INTERVAL = std::chrono::microseconds(0);
 
     namespace {
       int16_t

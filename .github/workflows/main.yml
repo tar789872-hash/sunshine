@@ -3,6 +3,7 @@ name: Build and Release
 on:
   pull_request:
     branches:
+      - main
       - master
     types:
       - opened
@@ -10,6 +11,7 @@ on:
       - reopened
   push:
     branches:
+      - main
       - master
   release:
     types: [published]
